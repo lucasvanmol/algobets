@@ -1,0 +1,7 @@
+#pragma version 2
+// the clear state program is used by the application to clear the global and local state storage application and accounts.
+// this particular program does not evaluate any conditions and simply approves the call
+
+
+// place integer 1 on the stack, signaling approval
+int 1
