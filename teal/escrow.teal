@@ -18,7 +18,7 @@ int appl
 // The specific App ID must be called
 // This should be changed after creation
 gtxn 1 ApplicationID
-int {app_id}
+int TMPL_APP_ID
 ==
 &&
 
