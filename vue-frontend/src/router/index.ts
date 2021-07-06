@@ -14,7 +14,7 @@ const routes = [
         name: 'Upcoming Matches',
         component: UpcomingMatches
     },
-    {   
+    {
         path: "/:pathMatch(.*)",
         name: '404',
         component: PageNotFound

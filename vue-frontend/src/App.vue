@@ -11,7 +11,7 @@
 import { defineComponent } from 'vue';
 import NavBar from './components/NavBar.vue'
 import NeedAlgoSigner from './components/NeedAlgoSigner.vue'
-declare var AlgoSigner: any;
+declare var AlgoSigner: any; // eslint-disable-line
 
 export default defineComponent({
     name: 'App',
