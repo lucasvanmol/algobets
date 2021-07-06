@@ -22,7 +22,7 @@ export default defineComponent({
     props: {
         listName: String,
         dapps: {
-            type: Array as PropType<Array<Dapp>>, // or Array<ActiveAccount>
+            type: Array as PropType<Array<Dapp>>, // or Array<DappLocalState>
             required: true,
         }
     },

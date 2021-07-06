@@ -50,18 +50,16 @@ export default createStore({
             context.commit('setUserAccounts', userAccounts);
         },
         async getActiveDapps(context) {
-            const appIds = context.state.dapps.map(dapp => dapp.Id);
-            const accounts = context.state.userAccounts;
-            const activeAccounts = await api.getActiveDapps(appIds, accounts);
-            const acc = activeAccounts.map(acc => {
-                return {
-                    account: acc.account,
-                    Team: acc.Team,
-                    Bet: acc.Bet,
-                    dapp: context.state.dapps.find(dapp => dapp.Id === acc.Id) as Dapp
-                }
-            })
-            context.commit('setActiveDapps', acc);
+            context.commit('setActiveDapps', []);
+            const activeDapps = [];
+
+            for (const account of context.state.userAccounts) {
+                const activeAccounts = await api.getActiveDapps(context.state.dapps, account);
+                activeDapps.push(...activeAccounts)
+
+                // Copy activeDapps so that the property remains reactive
+                context.commit('setActiveDapps', [...activeDapps]);
+            }
         }
     },
     strict: debug,

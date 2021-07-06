@@ -10,6 +10,11 @@ export default defineComponent({
     components: {
         DappList
     },
+    watch: {
+        myMatches() {
+            console.log(this.myMatches)
+        }
+    },
     computed: {
         myMatches() {
             return this.$store.state.activeDapps;

@@ -142,53 +142,50 @@ export default {
      * @param accounts List of accounts to check.
      * @returns List of objects that include information about the user account, the corresponding app id, and their local state for that app id.
      */
-    async getActiveDapps(appIds: number[], accounts: Account[]): Promise<{ Id: number, Team: string, Bet: number, account: Account }[]> {
-        const activeAccounts: { Id: number, Team: string, Bet: number, account: Account }[] = [];
+    async getActiveDapps(dapps: Dapp[], account: Account): Promise<DappLocalState[]> {
+        const activeAccounts: DappLocalState[] = [];
 
-        // For every account, get active dapps
-        // If that dapp's app id is in appIds, save it into activeAccounts (along with local state)
-        for (let i = 0; i < accounts.length; i++) {
-
-            const account = accounts[i];
-
-            const info = await AlgoSigner.indexer({
-                ledger: LEDGER_NAME,
-                path: `/v2/accounts/${account.address}`
-            });
+        // Query the indexer for account information
+        const info = await AlgoSigner.indexer({
+            ledger: LEDGER_NAME,
+            path: `/v2/accounts/${account.address}`
+        });
 
 
-            if ('account' in info && 'apps-local-state' in info['account']) {
-                info['account']['apps-local-state'].forEach((app: any) => {
-                    if (appIds.includes(app['id'])) {
+        if ('account' in info && 'apps-local-state' in info['account']) {
+            info['account']['apps-local-state'].forEach((app: any) => {
+                // Check if this app is in our list of dapps
+                const dapp = dapps.find(dapp => dapp.Id === app['id']);
 
-                        const localState = {
-                            Id: app['id'],
-                            Team: '',
-                            Bet: 0,
-                            account: account,
-                        }
-
-                        app['key-value'].forEach((item: any) => {
-                            const key = Buffer.from(item['key'], 'base64').toString('ascii');
-                            switch (key) {
-                                case "MyTeam":
-                                    localState.Team = Buffer.from(item['value']['bytes'], 'base64').toString('ascii');
-                                    break;
-
-                                case "MyBet":
-                                    localState.Bet = item['value']['uint']
-                                    break;
-
-                                default:
-                                    console.warn(`Unexpected global variable "${key}" from app with id ${app['id']}`)
-                                    break;
-                            }
-                        });
-
-                        activeAccounts.push(localState);
+                // If it is, add local state information to the list
+                if (dapp !== undefined) {
+                    const localState: DappLocalState = {
+                        dapp: dapp,
+                        Team: '',
+                        Bet: 0,
+                        account: account,
                     }
-                });
-            }
+
+                    app['key-value'].forEach((item: any) => {
+                        const key = Buffer.from(item['key'], 'base64').toString('ascii');
+                        switch (key) {
+                            case "MyTeam":
+                                localState.Team = Buffer.from(item['value']['bytes'], 'base64').toString('ascii');
+                                break;
+
+                            case "MyBet":
+                                localState.Bet = item['value']['uint']
+                                break;
+
+                            default:
+                                console.warn(`Unexpected global variable "${key}" from app with id ${app['id']}`)
+                                break;
+                        }
+                    });
+
+                    activeAccounts.push(localState);
+                }
+            });
         }
 
         return activeAccounts;

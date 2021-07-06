@@ -37,6 +37,7 @@ export default defineComponent({
         async checkAlgoSigner() {
             if (typeof AlgoSigner !== 'undefined') {
                 this.$store.commit('setHasAlgoSigner', true);
+                await AlgoSigner.connect();
                 this.$store.dispatch('getAll');
             } else {
                 setTimeout(() => this.checkAlgoSigner(), 1);
