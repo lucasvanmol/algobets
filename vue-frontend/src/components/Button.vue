@@ -1,40 +1,22 @@
 <template>
     <button 
-        @click="toggleBetModal"
+        @click="$emit('on-click')"
         :style="{ background: color }"
     >
         {{ text }}
     </button>
-    <transition name="fade">
-        <BetModal v-if="showBetModal" :teamName="teamName" :teamColor="color" :dapp="dapp" @toggle-bet-modal="toggleBetModal"></BetModal>
-    </transition>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue'
-import BetModal from './BetModal.vue'
 
 export default defineComponent({
     name: 'Button',
-    components: {
-        BetModal
-    },
-    data() {
-        return {
-            showBetModal: false
-        }
-    },
     props: {
-        text: String,
         color: String,
-        teamName: String,
-        dapp: Object,
+        text: String,
     },
-    methods: {
-        toggleBetModal: function() {
-            this.showBetModal = !this.showBetModal;
-        }
-    }
+    emits: ['on-click']
 })
 </script>
 

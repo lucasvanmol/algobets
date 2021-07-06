@@ -291,12 +291,11 @@ export default {
         return Math.floor(myBet / myTeamTotal * (myTeamTotal + otherTeamTotal) - fee)
     },
 
-    /**
-     * Claim winnings for a given user.
-     * 
-     * @param dls DappLocalState object.
-     */
-    async claimFromDapp(dls: DappLocalState) {
+    calculateReclaimAmount(myBet: number, fee = 1000) {
+        return myBet - fee
+    },
+
+    async getLogicSig(dls: DappLocalState) {
         // Compile the escrow stateless smart contract in order to construct the LogicSig
         const escrow_tmpl = await (await fetch('../conf/escrow.teal')).text();
         const escrow_src = escrow_tmpl.replace('TMPL_APP_ID', dls.dapp.Id.toString());
@@ -307,13 +306,21 @@ export default {
             method: 'POST',
             contentType: 'text/plain',
         });
-        console.log(response)
         if (response['hash'] !== dls.dapp.Escrow) {
             throw Error(`Escrow program hash ${response['hash']} did not equal the dapps's escrow address ${dls.dapp.Escrow}`)
         }
 
         const program = new Uint8Array(Buffer.from(response['result'], 'base64'));
-        const lsig = algosdk.makeLogicSig(program);
+        return algosdk.makeLogicSig(program);
+    },
+
+    /**
+     * Claim winnings for a given user.
+     * 
+     * @param dls DappLocalState object.
+     */
+    async claimFromDapp(dls: DappLocalState) {
+        const lsig = await this.getLogicSig(dls);
 
         const params = await this.getMinParams();
 
@@ -337,6 +344,60 @@ export default {
 
         const args: Uint8Array[] = [];
         args.push(new Uint8Array(Buffer.from('claim')))
+
+        const txn_2 = algosdk.makeApplicationNoOpTxn(dls.account.address, params, dls.dapp.Id, args);
+
+        algosdk.assignGroupID([txn_1, txn_2]);
+
+        const binaryTxs = [txn_1.toByte(), txn_2.toByte()];
+        const base64Txs = binaryTxs.map((binary) => AlgoSigner.encoding.msgpackToBase64(binary));
+
+        // Sign the app call with the user's account
+        const signedTxs = await AlgoSigner.signTxn([
+            {
+                txn: base64Txs[0],
+                signers: []
+            },
+            {
+                txn: base64Txs[1],
+            },
+        ]);
+
+        // Sign the payment transaction with the LogicSig
+        const stxn_1 = algosdk.signLogicSigTransactionObject(txn_1, lsig);
+        const signedTx1Binary = stxn_1.blob;
+        const signedTx2Binary = AlgoSigner.encoding.base64ToMsgpack(signedTxs[1].blob);
+
+        const combinedBinaryTxns = new Uint8Array(signedTx1Binary.byteLength + signedTx2Binary.byteLength);
+        combinedBinaryTxns.set(signedTx1Binary, 0);
+        combinedBinaryTxns.set(signedTx2Binary, signedTx1Binary.byteLength);
+
+        const combinedBase64Txns = AlgoSigner.encoding.msgpackToBase64(combinedBinaryTxns);
+
+        await AlgoSigner.send({
+            ledger: LEDGER_NAME,
+            tx: combinedBase64Txns,
+        });
+    },
+
+    async reclaimFromDapp(dls: DappLocalState) {
+        const lsig = await this.getLogicSig(dls);
+
+        const params = await this.getMinParams();
+
+        const amount = this.calculateReclaimAmount(dls.Bet);
+
+        // Construct the transaction
+        console.log("Reclaiming " + amount + " with account " + dls.account.address);
+        const txn_1 = new algosdk.Transaction({
+            to: dls.account.address,
+            from: lsig.address(),
+            amount: amount,
+            ...params
+        })
+
+        const args: Uint8Array[] = [];
+        args.push(new Uint8Array(Buffer.from('reclaim')))
 
         const txn_2 = algosdk.makeApplicationNoOpTxn(dls.account.address, params, dls.dapp.Id, args);
 

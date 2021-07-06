@@ -27,34 +27,40 @@
         <table v-if="!localState">
             <tr>
                 <td>
-                    <Button 
+                    <VoteButton 
                         text="Vote"
                         :color="team1Color"
                         :teamName="dapp.Team1.Name"
                         :dapp="dapp"
                         >
-                    </Button>
+                    </VoteButton>
                 </td>
                 <td></td>
                 <td>
-                    <Button
+                    <VoteButton
                         text="Vote"
                         :color="team2Color"
                         :teamName="dapp.Team2.Name"
                         :dapp="dapp"
                         >
-                    </Button>
+                    </VoteButton>
                 </td>
             </tr>
         </table>
         <div v-else>
             <LocalStateInfo :localState="localState" :color="myTeamColor"></LocalStateInfo>
-            <div v-if="dapp.Winner === ''">
+            <div v-if="isExpired">
+                Winner was not picked!
+                <br>
+                <ReclaimButton :localState="localState"></ReclaimButton>
+            </div>
+            <div v-else-if="dapp.Winner === ''">
                 Winner has yet to be picked...
             </div>
             <div v-else>
-                <ClaimButton :color="myTeamColor" :localState="localState"></ClaimButton>
                 Winner: <span :style="{ color: winningTeamColor }">{{dapp.Winner}}</span>
+                <br>
+                <ClaimButton :color="myTeamColor" :localState="localState"></ClaimButton>
             </div>
         </div>
     </div>
@@ -62,12 +68,13 @@
 
 <script lang="ts">
 import { defineComponent, PropType } from 'vue'
-import Button from './Button.vue'
+import VoteButton from './VoteButton.vue'
 import Bar from './Bar.vue'
 import DappInfo from './DappInfo.vue'
 import { Dapp, DappLocalState } from '@/types'
 import LocalStateInfo from './LocalStateInfo.vue'
 import ClaimButton from './ClaimButton.vue'
+import ReclaimButton from './ReclaimButton.vue'
 
 export default defineComponent({
     name: 'DappBlock',
@@ -90,11 +97,12 @@ export default defineComponent({
         },
     },
     components: {
-        Button,
+        VoteButton,
         Bar,
         DappInfo,
         LocalStateInfo,
-        ClaimButton
+        ClaimButton,
+        ReclaimButton
     },
     computed: {
         myTeamColor(): string {
@@ -110,6 +118,9 @@ export default defineComponent({
             } else {
                 return this.team2Color;
             }
+        },
+        isExpired(): boolean {
+            return this.dapp.EndDate * 1000 < Date.now();
         }
     }
 })

@@ -1,5 +1,5 @@
 <template>
-    <Button @on-click="claimBet" :color="color" text="Claim"></Button>
+    <Button @on-click="claimBet" color="black" text="Reclaim"></Button>
 </template>
 
 <script lang="ts">
@@ -9,12 +9,11 @@ import Button from './Button.vue'
 import api from '../api/dapps'
 
 export default defineComponent({
-    name: 'ClaimButton',
+    name: 'ReclaimButton',
     components: {
         Button
     },
     props: {
-        color: String,
         localState: {
             type: Object as PropType<DappLocalState>,
             required: true,
@@ -22,7 +21,7 @@ export default defineComponent({
     },
     methods: {
         claimBet: function() {
-            api.claimFromDapp(this.localState);
+            api.reclaimFromDapp(this.localState);
         }
     }
 })
