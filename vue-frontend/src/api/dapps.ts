@@ -1,6 +1,7 @@
+/* eslint-disable */
 import * as algosdk from 'algosdk';
 import { Base64 } from 'js-base64';
-import { Dapp, Team, Account, DappLocalState } from "@/types";
+import { Dapp, Account, DappLocalState } from "@/types";
 import { Transaction } from 'algosdk';
 declare const AlgoSigner: any;
 const CREATOR = process.env.VUE_APP_CREATOR_ADDRESS;
@@ -8,30 +9,32 @@ const LEDGER_NAME = process.env.VUE_APP_LEDGER_NAME;
 
 
 export default {
-
-    async getDapps(): Promise<Dapp[]> {
-        // Connect to algosigner
+    /**
+     * Connect to AlgoSigner. Must be called before any other api call that uses it.
+     */
+    async connectAlgoSigner() {
         await AlgoSigner.connect();
+    },
 
-        // Get all dapps created by CREATOR
+    /**
+     * Use AlgoSigner to query the Algorand blockchain for a list of AlgoBet DApps made by CREATOR.
+     * 
+     * @returns List of DApps.
+     */
+    async getDapps(): Promise<Dapp[]> {
+
+        // Query the indexer
         const r = await AlgoSigner.indexer({
             ledger: LEDGER_NAME,
-            path: `/v2/accounts/${CREATOR}` 
+            path: `/v2/accounts/${CREATOR}`
         });
         const apps = r['account']['created-apps'];
 
         const dapps: Dapp[] = []
         apps.forEach((app: any) => {
-            // include app id
-            const team1: Team = {
-                Name: "",
-                Total: 0
-            }
-            const team2: Team = {
-                Name: "",
-                Total: 0
-            }
-            const dapp: Dapp  = {
+
+            // Initialise the Dapp object
+            const dapp: Dapp = {
                 Id: app['id'],
                 Team1: {
                     Name: '',
@@ -47,27 +50,27 @@ export default {
                 EndDate: 0
             }
 
-            // and get all global state variables, and decode them
+            // Get all global state variables and decode them
             app['params']['global-state'].forEach((item: any) => {
                 const key = Buffer.from(item['key'], 'base64').toString('ascii');
-                
+
                 const val_str = Buffer.from(item['value']['bytes'], 'base64').toString('ascii');
                 const val_uint = item['value']['uint'];
                 switch (key) {
                     case "Team1":
-                        team1.Name = val_str;
+                        dapp.Team1.Name = val_str;
                         break;
 
                     case "Team2":
-                        team2.Name = val_str;
+                        dapp.Team2.Name = val_str;
                         break;
-                    
+
                     case "Team1Total":
-                        team1.Total = val_uint;
+                        dapp.Team1.Total = val_uint;
                         break;
 
                     case "Team2Total":
-                        team2.Total = val_uint;
+                        dapp.Team2.Total = val_uint;
                         break;
 
                     case "Winner":
@@ -78,7 +81,7 @@ export default {
                     case "EndDate":
                         dapp[key] = val_uint;
                         break;
-                    
+
                     case "Escrow": {
                         const bytes = Base64.toUint8Array(item['value']['bytes']);
                         const addr = algosdk.encodeAddress(bytes);
@@ -88,36 +91,37 @@ export default {
                         dapp.Escrow = addr
                         break;
                     }
-                        
+
                     default:
                         console.warn(`Unexpected global variable "${key}" from app with id ${dapp.Id}`)
                         break;
                 }
             });
-            
-            dapp.Team1 = team1;
-            dapp.Team2 = team2;
+
             dapps.push(dapp as Dapp);
         });
 
         return dapps;
     },
 
+    /**
+     * Query AlgoSigner for a list of user accounts
+     * 
+     * @returns The list of Accounts.
+     */
     async getUserAccounts(): Promise<Account[]> {
-        await AlgoSigner.connect();
-
-        // Get user accounts
         const accountsRaw = await AlgoSigner.accounts({
             ledger: LEDGER_NAME,
         });
 
         const userAccounts: Account[] = [];
 
+        // Generate shorthand for display purposes
         accountsRaw.forEach((account: any) => {
             const len = account.address.length;
-            const slice = account.address.slice(0, 6) 
-                + " ... " 
-                + account.address.substr(len-6, len);
+            const slice = account.address.slice(0, 6)
+                + " ... "
+                + account.address.substr(len - 6, len);
 
             const acc: Account = {
                 address: account.address,
@@ -126,13 +130,21 @@ export default {
 
             userAccounts.push(acc);
         });
-        
-        return userAccounts;       
+
+        return userAccounts;
     },
 
-    async getActiveDapps(appIds: number[], accounts: Account[]): Promise<{Id: number, Team: string, Bet: number, account: Account}[]> {
-        const activeAccounts: {Id: number, Team: string, Bet: number, account: Account}[] = [];
-        
+
+    /**
+     * For a given list of app ids, check if an account has opted in to it or not. If it has, also provide information on its local state.
+     * 
+     * @param appIds List of app ids to filter for.
+     * @param accounts List of accounts to check.
+     * @returns List of objects that include information about the user account, the corresponding app id, and their local state for that app id.
+     */
+    async getActiveDapps(appIds: number[], accounts: Account[]): Promise<{ Id: number, Team: string, Bet: number, account: Account }[]> {
+        const activeAccounts: { Id: number, Team: string, Bet: number, account: Account }[] = [];
+
         // For every account, get active dapps
         // If that dapp's app id is in appIds, save it into activeAccounts (along with local state)
         for (let i = 0; i < accounts.length; i++) {
@@ -148,7 +160,7 @@ export default {
             if ('account' in info && 'apps-local-state' in info['account']) {
                 info['account']['apps-local-state'].forEach((app: any) => {
                     if (appIds.includes(app['id'])) {
-                        
+
                         const localState = {
                             Id: app['id'],
                             Team: '',
@@ -172,16 +184,21 @@ export default {
                                     break;
                             }
                         });
-                        
+
                         activeAccounts.push(localState);
                     }
                 });
             }
         }
 
-        return activeAccounts;  
+        return activeAccounts;
     },
 
+    /**
+     * Query the blockchain for suggested params, and set flat fee to True and the fee to the minimum.
+     * 
+     * @returns The paramaters.
+     */
     async getMinParams(): Promise<algosdk.SuggestedParams> {
         const suggestedParams = await AlgoSigner.algod({
             ledger: LEDGER_NAME,
@@ -200,16 +217,24 @@ export default {
         return params
     },
 
+    /**
+     * Bet on a team by opting in to the DApp
+     * 
+     * @param address       The address of the user.
+     * @param dapp          The DApp in question.
+     * @param amount        The amount to wager.
+     * @param teamName      The team neame to bet for. 
+     */
     async optInToDapp(address: string, dapp: Dapp, amount: number, teamName: string) {
         const params = await this.getMinParams();
 
+        // Construct the transaction
         const tx0 = new algosdk.Transaction({
             to: dapp.Escrow,
             from: address,
             amount: amount,
             ...params,
         });
-
         const myTeam = new TextEncoder().encode(teamName);
         const tx1 = algosdk.makeApplicationOptInTxn(
             address,
@@ -218,9 +243,16 @@ export default {
             [myTeam]
         );
 
+        // Sign and send
         this.combineAndSend(tx0, tx1);
     },
 
+    /**
+     * Helper function to combine two transactions, sign them with AlgoSigner, and send them to the blockchain
+     * 
+     * @param tx0 The first transaction
+     * @param tx1 The second transaction
+     */
     async combineAndSend(tx0: Transaction, tx1: Transaction) {
         algosdk.assignGroupID([tx0, tx1]);
 
@@ -228,19 +260,19 @@ export default {
         const base64Txs = binaryTxs.map((binary) => AlgoSigner.encoding.msgpackToBase64(binary));
 
         const signedTxs = await AlgoSigner.signTxn([
-        {
-            txn: base64Txs[0],
-        },
-        {
-            txn: base64Txs[1],
-        },
+            {
+                txn: base64Txs[0],
+            },
+            {
+                txn: base64Txs[1],
+            },
         ]);
 
         const binarySignedTxs = signedTxs.map((tx: any) => AlgoSigner.encoding.base64ToMsgpack(tx.blob));
         const combinedBinaryTxns = new Uint8Array(binarySignedTxs[0].byteLength + binarySignedTxs[1].byteLength);
         combinedBinaryTxns.set(binarySignedTxs[0], 0);
         combinedBinaryTxns.set(binarySignedTxs[1], binarySignedTxs[0].byteLength);
-        
+
         const combinedBase64Txns = AlgoSigner.encoding.msgpackToBase64(combinedBinaryTxns);
 
         await AlgoSigner.send({
@@ -249,11 +281,26 @@ export default {
         });
     },
 
-    calculateClaimAmount(my_bet: number, my_team_total: number, other_team_total: number, fee=1000) {
-        return Math.floor(my_bet / my_team_total * (my_team_total + other_team_total) - fee)
+    /**
+     * Helper function used to calculate how much a user is entitled to if they win for the given parameters.
+     * 
+     * @param myBet 
+     * @param myTeamTotal 
+     * @param otherTeamTotal 
+     * @param fee 
+     * @returns The amount a user may claim.
+     */
+    calculateClaimAmount(myBet: number, myTeamTotal: number, otherTeamTotal: number, fee = 1000) {
+        return Math.floor(myBet / myTeamTotal * (myTeamTotal + otherTeamTotal) - fee)
     },
-    
+
+    /**
+     * Claim winnings for a given user.
+     * 
+     * @param dls DappLocalState object.
+     */
     async claimFromDapp(dls: DappLocalState) {
+        // Compile the escrow stateless smart contract in order to construct the LogicSig
         const escrow_tmpl = await (await fetch('../conf/escrow.teal')).text();
         const escrow_src = escrow_tmpl.replace('TMPL_APP_ID', dls.dapp.Id.toString());
         const response = await AlgoSigner.algod({
@@ -268,25 +315,24 @@ export default {
             throw Error(`Escrow program hash ${response['hash']} did not equal the dapps's escrow address ${dls.dapp.Escrow}`)
         }
 
-        const program = new Uint8Array(Buffer.from(response['result'], 'base64'))
-     
-        const lsig = algosdk.makeLogicSig(program)
+        const program = new Uint8Array(Buffer.from(response['result'], 'base64'));
+        const lsig = algosdk.makeLogicSig(program);
 
         const params = await this.getMinParams();
 
-
+        // Calculate winnings
         let myTeamTotal = dls.dapp.Team1.Total;
         let otherTeamTotal = dls.dapp.Team2.Total;
         if (dls.Team !== dls.dapp.Team1.Name) {
             myTeamTotal = dls.dapp.Team2.Total;
             otherTeamTotal = dls.dapp.Team1.Total;
         }
-
         const amount = this.calculateClaimAmount(dls.Bet, myTeamTotal, otherTeamTotal);
 
+        // Construct the transaction
         console.log("Claiming " + amount + " with account " + dls.account.address);
         const txn_1 = new algosdk.Transaction({
-            to: dls.account.address, 
+            to: dls.account.address,
             from: lsig.address(),
             amount: amount,
             ...params
@@ -302,17 +348,18 @@ export default {
         const binaryTxs = [txn_1.toByte(), txn_2.toByte()];
         const base64Txs = binaryTxs.map((binary) => AlgoSigner.encoding.msgpackToBase64(binary));
 
+        // Sign the app call with the user's account
         const signedTxs = await AlgoSigner.signTxn([
-        {
-            txn: base64Txs[0],
-            signers: []
-        },
-        {
-            txn: base64Txs[1],
-        },
+            {
+                txn: base64Txs[0],
+                signers: []
+            },
+            {
+                txn: base64Txs[1],
+            },
         ]);
 
-        // Sign leftover transaction with the SDK
+        // Sign the payment transaction with the LogicSig
         const stxn_1 = algosdk.signLogicSigTransactionObject(txn_1, lsig);
         const signedTx1Binary = stxn_1.blob;
         const signedTx2Binary = AlgoSigner.encoding.base64ToMsgpack(signedTxs[1].blob);
@@ -320,7 +367,7 @@ export default {
         const combinedBinaryTxns = new Uint8Array(signedTx1Binary.byteLength + signedTx2Binary.byteLength);
         combinedBinaryTxns.set(signedTx1Binary, 0);
         combinedBinaryTxns.set(signedTx2Binary, signedTx1Binary.byteLength);
-        
+
         const combinedBase64Txns = AlgoSigner.encoding.msgpackToBase64(combinedBinaryTxns);
 
         await AlgoSigner.send({
