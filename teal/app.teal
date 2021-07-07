@@ -336,6 +336,7 @@ assert
 
 // first get my team total (thanks to dup call earlier)
 byte "Team2"
+app_global_get
 ==
 bnz Team2Total
 
