@@ -43,7 +43,7 @@ export default createStore({
         },
         async getDapps(context) {
             const dapps = await api.getDapps();
-            dapps.sort((a, b) => a.LimitDate - b.LimitDate);
+            dapps.sort((a, b) => b.LimitDate - a.LimitDate);
             context.commit('setDapps', dapps);
         },
         async getUserAccounts(context) {
@@ -57,7 +57,7 @@ export default createStore({
             for (const account of context.state.userAccounts) {
                 const activeAccounts = await api.getActiveDapps(context.state.dapps, account);
                 activeDapps.push(...activeAccounts)
-                activeDapps.sort((a, b) => a.dapp.LimitDate -  b.dapp.LimitDate);
+                activeDapps.sort((a, b) => b.dapp.LimitDate -  a.dapp.LimitDate);
                 
                 // Copy activeDapps so that the property remains reactive
                 context.commit('setActiveDapps', [...activeDapps]);
