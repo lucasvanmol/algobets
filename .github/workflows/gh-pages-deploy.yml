@@ -3,6 +3,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'vue-frontend/**'
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
