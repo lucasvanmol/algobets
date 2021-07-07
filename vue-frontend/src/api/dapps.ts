@@ -3,6 +3,7 @@ import * as algosdk from 'algosdk';
 import { Base64 } from 'js-base64';
 import { Dapp, Account, DappLocalState } from "@/types";
 import { Transaction } from 'algosdk';
+import { escrow } from './escrow-teal';
 declare const AlgoSigner: any;
 const CREATOR = process.env.VUE_APP_CREATOR_ADDRESS;
 const LEDGER_NAME = process.env.VUE_APP_LEDGER_NAME;
@@ -297,8 +298,7 @@ export default {
 
     async getLogicSig(dls: DappLocalState) {
         // Compile the escrow stateless smart contract in order to construct the LogicSig
-        const escrow_tmpl = await (await fetch('../conf/escrow.teal')).text();
-        const escrow_src = escrow_tmpl.replace('TMPL_APP_ID', dls.dapp.Id.toString());
+        const escrow_src = escrow(dls.dapp.Id);
         const response = await AlgoSigner.algod({
             ledger: LEDGER_NAME,
             path: '/v2/teal/compile',
