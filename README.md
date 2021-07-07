@@ -1,5 +1,7 @@
 # AlgoBets
 
+This project is currently running at: https://lucasvanmol.github.io/algobets/
+
 ## Overview
 This project contains three parts:
 * A stateful and stateless smart contract which are deployed on the Algorand blockchain
