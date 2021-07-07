@@ -1,6 +1,7 @@
-from algosdk import account, mnemonic
+from algosdk import account, mnemonic, encoding
 from algosdk.future import transaction
 from algosdk.future.transaction import LogicSig
+from algosdk.v2client.indexer import IndexerClient
 import base64
 
 def wait_for_confirmation(client, txid, timeout):
@@ -76,10 +77,8 @@ def call_application(client, app_id: int, private_key: str, app_args = None): #N
 
     transaction_response = client.pending_transaction_info(tx_id)
     print("Called app-id: ",transaction_response['txn']['txn']['apid'])
-    if "global-state-delta" in transaction_response :
-        print("Global State updated :\n",transaction_response['global-state-delta'])
-    if "local-state-delta" in transaction_response :
-        print("Local State updated :\n",transaction_response['local-state-delta'])
+    return transaction_response
+    
 
 def update_application(client, app_id: int, private_key, approval_program, clear_program,  app_args = None): 
     with open(approval_program, "r") as f:
@@ -130,3 +129,41 @@ def read_global_state(client, addr, app_id) :
     for app in apps_created :
         if app['id'] == app_id :
             print(f"global_state for app_id {app_id}: ", app['params']['global-state'])
+
+def get_acc_info(pub_key: str, ind: IndexerClient):
+    info = ind.account_info(pub_key)
+    return info
+
+def get_app_info(app_id: int, ind: IndexerClient):
+    global_state = ind.applications(
+        app_id)["application"]["params"]["global-state"]
+
+    return convert_state_dict(global_state, app_id)
+
+def convert_state_dict(state_dict: dict, app_id: int = None):
+    if app_id:
+        app_vars = {"id": app_id}
+    else:
+        app_vars = {}
+
+    for var in state_dict:
+        key = base64.b64decode(var["key"]).decode()
+        if key == "Team1":
+            team1_b64 = var["value"]["bytes"]
+        elif key == "Team2":
+            team2_b64 = var["value"]["bytes"]
+
+        if var["value"]["type"] == 2:
+            val = var["value"]["uint"]
+        elif var["value"]["type"] == 1:
+            val = base64.b64decode(var["value"]["bytes"])
+            try:
+                val = val.decode()
+            except UnicodeDecodeError:
+                val = encoding.encode_address(val)
+        else:
+            raise ValueError(
+                "Unrecognized global var type: " + var["value"]["type"])
+
+        app_vars[key] = val
+    return app_vars
