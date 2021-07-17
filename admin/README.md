@@ -4,6 +4,8 @@ For deploying and updating the dapp.
 
 ## Usage
 
+Before using this CLI, you need to put your Algod and Indexer addresses and tokens in the `.env` file. If you're using the PureStake API, you must also include your API key.
+
 ```
 $ python .\admin.py --help
 usage: admin.py [-h] {list,create,delete,setwinner,info} ...
