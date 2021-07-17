@@ -1,6 +1,6 @@
 # admin.py
 
-For deploying and updating the dapp.
+For deploying and updating the dapp. `utils.py` contains some generic utility functions in, and functions specific to this application are in `admin.py`.
 
 ## Usage
 
