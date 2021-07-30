@@ -12,7 +12,7 @@ pip install -r requirements.txt
 
 Then configure your `.env` file:
 
-### Sandbox env file
+### Sandbox
 
 ```
 ALGOD_ADDRESS="http://localhost:4001"
