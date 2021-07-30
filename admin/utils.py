@@ -148,10 +148,6 @@ def convert_state_dict(state_dict: dict, app_id: int = None):
 
     for var in state_dict:
         key = base64.b64decode(var["key"]).decode()
-        if key == "Team1":
-            team1_b64 = var["value"]["bytes"]
-        elif key == "Team2":
-            team2_b64 = var["value"]["bytes"]
 
         if var["value"]["type"] == 2:
             val = var["value"]["uint"]
