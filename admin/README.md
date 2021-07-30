@@ -1,6 +1,6 @@
 # admin.py
 
-For deploying and updating the dapp.
+For deploying and updating the dapp. `utils.py` contains some generic utility functions in, and functions specific to this application are in `admin.py`.
 
 ## Setup
 
@@ -31,6 +31,8 @@ API_KEY="your-api-key-here"
 ```
 
 ## Usage
+
+Before using this CLI, you need to put your Algod and Indexer addresses and tokens in the `.env` file. If you're using the PureStake API, you must also include your API key.
 
 ```
 $ python .\admin.py --help
