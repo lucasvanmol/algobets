@@ -2,6 +2,34 @@
 
 For deploying and updating the dapp.
 
+## Setup
+
+First, install the required dependencies with pip:
+
+```
+pip install -r requirements.txt
+```
+
+Then configure your `.env` file:
+
+### Sandbox env file
+
+```
+ALGOD_ADDRESS="http://localhost:4001"
+ALGOD_TOKEN="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+INDEXER_ADDRESS="http://localhost:8980"
+API_KEY=""
+```
+
+### Purestake API (Testnet)
+
+```
+ALGOD_ADDRESS="https://testnet-algorand.api.purestake.io/ps2"
+ALGOD_TOKEN=""
+INDEXER_ADDRESS="https://testnet-algorand.api.purestake.io/idx2"
+API_KEY="your-api-key-here"
+```
+
 ## Usage
 
 ```
@@ -38,4 +66,22 @@ optional arguments:
 $ cat my_private_key
 your twenty five word mnemonic goes here ...
 $ python .\admin.py create my_private_key England Denmark 1625684400 1626116400
+Deploying application with args: ['England', 'Denmark', 1625684400, 1626116400]
+Waiting for confirmation...
+...
+All done!
+$ python .\admin.py list PVFMNQ57IHIYVB5UCUF55AWC2GPTJ2TIOMNO4EOFDHSWT6ZFM672W63LRM
+{
+  "id": 32,
+  "EndDate": 1626116400,
+  "LimitDate": 1625684400,
+  "Team1": "England",
+  "Team1Total": 0,
+  "Team2": "Denmark",
+  "Team2Total": 0,
+  "Winner": "",
+  "Escrow": "NJRD6MZXQTHV6QMBIVTZG7CEGM6OEYMNSJVNKCHIZQ5YAS6WT4RJIYNQUA"
+}
+$ python .\admin.py info 32
+{'id': '32', 'EndDate': 1626116400, 'LimitDate': 1625684400, 'Team1': 'England', 'Team1Total': 0, 'Team2': 'Denmark', 'Team2Total': 0, 'Winner': '', 'Escrow': 'NJRD6MZXQTHV6QMBIVTZG7CEGM6OEYMNSJVNKCHIZQ5YAS6WT4RJIYNQUA'}
 ```

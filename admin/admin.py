@@ -5,12 +5,18 @@ from base64 import b64decode, b64encode, decodebytes
 from dotenv import dotenv_values
 from datetime import datetime, timedelta
 import utils
-import json
-import time
-import argparse
+import json, time, argparse, os
 
 # Configure and start Algod client & indexer
-config = dotenv_values(".env.local")
+
+if os.path.isfile(".env.local"):
+    config = dotenv_values(".env.local")
+elif os.path.isfile(".env"):
+    config = dotenv_values(".env")
+else:
+    raise FileNotFoundError(".env file not found!")
+
+
 headers = {
     "X-API-Key": config["API_KEY"]
 }
@@ -41,6 +47,7 @@ def full_deploy(private_key: str, team1: str, team2: str, limitdate: datetime, e
     stxn = txn.sign(private_key)
     txid = client.send_transaction(stxn)
     utils.wait_for_confirmation(client, txid, 20)
+    print("All done!")
 
 
 def deploy(private_key: str, team1: str, team2: str, limitdate: datetime, enddate: datetime) -> int:
@@ -109,6 +116,7 @@ def delete_application(private_key: str, app_id: int, close_out=True):
         print("WARNING! This will permenantly delete the application, and any assets left in the escrow address will be unrecoverable!")
         i = input("Are you sure you wish to continue? [y/N]")
         if i.lower() != 'y':
+            print("Aborted")
             return
 
         txn = transaction.ApplicationDeleteTxn(pub, params, app_id)
@@ -116,6 +124,7 @@ def delete_application(private_key: str, app_id: int, close_out=True):
         txid = client.send_transaction(stxn)
 
     utils.wait_for_confirmation(client, txid, 20)
+    print("All done!")
 
 
 def arg_list(args):
@@ -128,14 +137,10 @@ def arg_list(args):
     else:
         apps = info['account']['created-apps']
 
-    if args.v:
-        for app in apps:
-            state = app["params"]["global-state"]
-            decoded = utils.convert_state_dict(state, app['id'])
-            print(json.dumps(decoded, indent=2))
-    else:
-        out = map(lambda app: app['id'], apps)
-        print(json.dumps(list(out), indent=2))
+    for app in apps:
+        state = app["params"]["global-state"]
+        decoded = utils.convert_state_dict(state, app['id'])
+        print(json.dumps(decoded, indent=2))
 
 
 def arg_delete(args):
@@ -168,10 +173,6 @@ if __name__ == "__main__":
     parser_list.add_argument('address')
     parser_list.add_argument(
         '--approval', help="optionally, an approval program to filter out", type=argparse.FileType('r'))
-    parser_list.add_argument(
-        '-v', action="store_true", help="verbose output")
-    parser_list.add_argument(
-        '-r', action="store_true", help="human readable")
     parser_list.set_defaults(func=arg_list)
 
     parser_create = subparsers.add_parser(
