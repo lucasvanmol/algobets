@@ -25,8 +25,10 @@ client = algod.AlgodClient(
 indx = indexer.IndexerClient(
     indexer_token="", indexer_address=config["INDEXER_ADDRESS"], headers=headers)
 
+FILE_PATH = os.path.dirname(os.path.realpath(__file__))
 
-def generate_escrow(app_id: int, escrow_file='../teal/escrow.teal'):
+
+def generate_escrow(app_id: int, escrow_file=f'{FILE_PATH}/../teal/escrow.teal'):
     with open(escrow_file) as f:
         src = f.read()
     return src.replace("TMPL_APP_ID", str(app_id))
@@ -55,7 +57,7 @@ def deploy(private_key: str, team1: str, team2: str, limitdate: datetime, enddat
 
     print(f"Deploying application with args: {args}")
     transaction_response = utils.deploy_application(
-        client, 4, 4, 1, 1, "../teal/app.teal", "../teal/clear.teal", private_key, app_args=args)
+        client, 4, 4, 1, 1, f"{FILE_PATH}/../teal/app.teal", f"{FILE_PATH}/../teal/clear.teal", private_key, app_args=args)
 
     print("Successfully deployed application:")
     print(json.dumps(transaction_response, indent=2) + "\n\n")
@@ -137,10 +139,12 @@ def arg_list(args):
     else:
         apps = info['account']['created-apps']
 
+    decoded_apps = []
     for app in apps:
         state = app["params"]["global-state"]
         decoded = utils.convert_state_dict(state, app['id'])
-        print(json.dumps(decoded, indent=2))
+        decoded_apps.append(decoded)
+    print(json.dumps(decoded_apps, indent=2))
 
 
 def arg_delete(args):
