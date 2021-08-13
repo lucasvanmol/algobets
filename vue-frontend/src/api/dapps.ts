@@ -98,8 +98,11 @@ export default {
                         break;
                 }
             });
-
-            dapps.push(dapp as Dapp);
+            
+            // Don't add DApps that don't have an escrow address set, as users will not be able to vote.
+            if (dapp.Escrow !== "") {
+                dapps.push(dapp as Dapp);
+            }
         });
 
         return dapps;

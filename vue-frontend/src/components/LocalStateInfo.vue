@@ -1,9 +1,14 @@
 <template>
-    <div>
+    <div v-if="!hasClaimed">
         <h1>{{localStateBetAlgos}}</h1>
         <img src="../assets/algorand_logo_mark_black.svg" alt="">
         <h1>on </h1>
         <h1 :style="{color: color}">{{localState.Team}}</h1>
+    </div>
+    <div v-else>
+        <h2>Your bet on </h2>
+        <h2 :style="{color: color}">{{localState.Team}}</h2>
+        <h2> has already been claimed</h2>
     </div>
 </template>
 
@@ -27,6 +32,9 @@ export default defineComponent({
     computed: {
         localStateBetAlgos(): number {
             return microalgosToAlgos((this.localState as DappLocalState).Bet)
+        },
+        hasClaimed(): boolean {
+            return this.localState.Bet === 0
         }
     }
 })
@@ -36,13 +44,20 @@ export default defineComponent({
 h1 {
     display: inline;
     color: black;
-    font-size: 54px;
+    font-size: 36px;
 }
+
+h2 {
+    display: inline;
+    color: black;
+    font-size: 24px;
+}
+
 img {
-    width: 100px;
+    width: 80px;
     margin-top: -20px;
     margin-left: -20px;
-    margin-right: 0px;
-    margin-bottom: -32px;
+    margin-right: -10px;
+    margin-bottom: -25px;
 }
 </style>

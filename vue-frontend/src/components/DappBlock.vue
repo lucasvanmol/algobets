@@ -24,7 +24,7 @@
             >
         </Bar>
         <DappInfo :dapp="dapp"></DappInfo>
-        <table v-if="!localState">
+        <table v-if="!localState && isVoteable">
             <tr>
                 <td>
                     <VoteButton 
@@ -47,7 +47,7 @@
                 </td>
             </tr>
         </table>
-        <div v-else>
+        <div v-else-if="localState">
             <LocalStateInfo :localState="localState" :color="myTeamColor"></LocalStateInfo>
             <div v-if="isExpired">
                 Winner was not picked!
@@ -57,10 +57,10 @@
             <div v-else-if="dapp.Winner === ''">
                 Winner has yet to be picked...
             </div>
-            <div v-else>
+            <div v-else-if="!hasClaimed">
                 Winner: <span :style="{ color: winningTeamColor }">{{dapp.Winner}}</span>
                 <br>
-                <ClaimButton :color="myTeamColor" :localState="localState"></ClaimButton>
+                <ClaimButton v-if="isWinner" :color="myTeamColor" :localState="localState"></ClaimButton>
             </div>
         </div>
     </div>
@@ -119,8 +119,17 @@ export default defineComponent({
                 return this.team2Color;
             }
         },
+        isVoteable(): boolean {
+            return this.dapp.LimitDate * 1000 > Date.now();
+        },
         isExpired(): boolean {
             return this.dapp.EndDate * 1000 < Date.now();
+        },
+        isWinner(): boolean {
+            return ((this.localState as DappLocalState).Team === this.dapp.Winner)
+        },
+        hasClaimed(): boolean {
+            return ((this.localState as DappLocalState).Bet === 0)
         }
     }
 })
