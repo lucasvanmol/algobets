@@ -245,7 +245,7 @@ export default {
         );
 
         // Sign and send
-        this.combineAndSend(tx0, tx1);
+        await this.combineAndSend(tx0, tx1);
     },
 
     /**

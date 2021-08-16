@@ -15,7 +15,10 @@
             </div>
             <input type="number" v-model="amount" placeholder="0" step="0.000001" min="0.01" maxlength="8">
             <br>
-            <input type="submit" value="Sign Transaction" :style="{ 'background-color': teamColor }"> 
+            <input v-if="!confirmText" type="submit" value="Sign Transaction" :style="{ 'background-color': teamColor }"> 
+            <div v-else>
+                {{confirmText}}
+            </div>
             </form>
         </div>
     </div>
@@ -45,6 +48,7 @@ export default defineComponent({
         return {
             amount: 0,
             isValidAddress: true,
+            confirmText: "",
         }
     },
     computed: {
@@ -75,7 +79,12 @@ export default defineComponent({
             + " with account " + acc);
         
             // construct the transaction and sign
-            await api.optInToDapp(acc, this.dapp, algosdk.algosToMicroalgos(this.amount), this.teamName as string);
+            api.optInToDapp(acc, this.dapp, algosdk.algosToMicroalgos(this.amount), this.teamName as string).then( () => {
+                this.confirmText = "Transaction Complete!";
+            }).catch((e) => {
+                console.error(e);
+                this.confirmText = "Transaction Failed!";
+            });
         }
     },
     emits: ['toggle-bet-modal']
